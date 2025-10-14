@@ -1,0 +1,122 @@
+{
+    "name": "code-suggester",
+    "displayName": "Code Suggester",
+    "description": "N-gram based code suggestions with language-specific training",
+    "version": "2.0.0",
+    "publisher": "Klabukov Erik",
+    "engines": {
+        "vscode": "^1.60.0"
+    },
+    "categories": [
+        "Programming Languages",
+        "Machine Learning",
+        "Snippets"
+    ],
+    "keywords": [
+        "autocomplete",
+        "code completion",
+        "suggestions",
+        "n-gram",
+        "machine learning",
+        "AI",
+        "C#",
+        "Python",
+        "JavaScript",
+        "TypeScript"
+    ],
+    "galleryBanner": {
+        "color": "#1e1e1e",
+        "theme": "dark"
+    },
+    "activationEvents": [
+        "onStartupFinished"
+    ],
+    "main": "./out/extension.js",
+    "contributes": {
+        "configuration": {
+            "title": "Code Suggester",
+            "properties": {
+                "codeSuggester.modelPath": {
+                    "type": "string",
+                    "default": "./models/model.json.gz",
+                    "description": "Path to the trained model file (supports .json and .json.gz)"
+                },
+                "codeSuggester.maxSuggestions": {
+                    "type": "number",
+                    "default": 5,
+                    "description": "Maximum number of suggestions to show",
+                    "minimum": 1,
+                    "maximum": 10
+                },
+                "codeSuggester.minConfidence": {
+                    "type": "number",
+                    "default": 0.1,
+                    "description": "Minimum confidence threshold for suggestions (0.0 - 1.0)",
+                    "minimum": 0.0,
+                    "maximum": 1.0
+                },
+                "codeSuggester.enableFuzzyMatching": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable fuzzy matching for similar code patterns"
+                }
+            }
+        },
+        "commands": [
+            {
+                "command": "codeSuggester.reloadModel",
+                "title": "Code Suggester: Reload Model",
+                "category": "Code Suggester"
+            },
+            {
+                "command": "codeSuggester.showStatus",
+                "title": "Code Suggester: Show Status",
+                "category": "Code Suggester"
+            }
+        ],
+        "menus": {
+            "command-palette": [
+                {
+                    "command": "codeSuggester.reloadModel",
+                    "when": "true"
+                },
+                {
+                    "command": "codeSuggester.showStatus",
+                    "when": "true"
+                }
+            ]
+        }
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "pretest": "npm run compile && npm run lint",
+        "lint": "eslint src --ext ts",
+        "test": "node ./out/test/runTest.js",
+        "package": "vsce package"
+    },
+    "devDependencies": {
+        "@types/vscode": "^1.60.0",
+        "@types/node": "16.x",
+        "@typescript-eslint/eslint-plugin": "^5.31.0",
+        "@typescript-eslint/parser": "^5.31.0",
+        "eslint": "^8.20.0",
+        "typescript": "^4.9.4",
+        "@types/mocha": "^9.1.1",
+        "@types/glob": "^7.2.0",
+        "glob": "^8.0.3",
+        "mocha": "^10.0.0",
+        "vscode-test": "^1.6.1"
+    },
+    "dependencies": {},
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/amest/vscode-code-suggester.git"
+    },
+    "bugs": {
+        "url": "https://github.com/amest/vscode-code-suggester/issues"
+    },
+    "license": "MIT",
+    "homepage": "https://github.com/amest/vscode-code-suggester#readme"
+}
