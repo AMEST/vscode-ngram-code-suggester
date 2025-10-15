@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import glob
 import os
 import re
@@ -7,12 +8,15 @@ from collections import defaultdict, Counter
 import argparse
 
 class CodeNGramModel:
-    def __init__(self, n=4):
+    def __init__(self, n=4, smoothing='laplace', alpha=1.0):
         self.n = n
-        self.ngrams = defaultdict(lambda: defaultdict(Counter))  # ext -> context -> tokens
+        self.ngrams = defaultdict(lambda: defaultdict(Counter))
         self.file_extensions = set()
         self.total_patterns = 0
-        self.version = "2.0"  # Версия с поддержкой языков
+        self.version = "2.2"  # Обновленная версия
+        self.smoothing = smoothing
+        self.alpha = alpha
+        self.vocab = defaultdict(set)
     
     def train_on_file(self, filepath):
         """Обучает модель на одном файле с учетом расширения"""
@@ -24,6 +28,7 @@ class CodeNGramModel:
             self.file_extensions.add(ext)
             
             tokens = self._tokenize_code(content, ext)
+            self.vocab[ext].update(tokens)
             sequences = self._extract_sequences(tokens, ext)
             
             for seq in sequences:
@@ -38,7 +43,7 @@ class CodeNGramModel:
             
         except Exception as e:
             print(f"Error processing {filepath}: {e}")
-    
+
     def _tokenize_code(self, content, ext):
         """Токенизация кода с учетом конкретного языка"""
         tokens = []
@@ -49,18 +54,13 @@ class CodeNGramModel:
             if not line:
                 continue
             
-            # Специфичная токенизация для каждого языка
             if ext == '.cs':
-                # C#: уделяем внимание типам, модификаторам доступа и т.д.
                 line_tokens = self._tokenize_csharp(line)
             elif ext in ['.js', '.ts']:
-                # JavaScript/TypeScript: обращаем внимание на function, const, let, =>
                 line_tokens = self._tokenize_javascript(line)
             elif ext == '.py':
-                # Python: обращаем внимание на def, class, self, отступы
                 line_tokens = self._tokenize_python(line)
             else:
-                # Общая токенизация для других языков
                 line_tokens = self._tokenize_general(line)
             
             tokens.extend(line_tokens)
@@ -68,8 +68,6 @@ class CodeNGramModel:
         return tokens
     
     def _tokenize_csharp(self, line):
-        """Токенизация для C#"""
-        # Выделяем ключевые слова C#, типы, модификаторы доступа
         tokens = re.findall(
             r'public|private|protected|internal|class|interface|struct|enum|void|string|int|bool|float|double|'
             r'var|new|using|namespace|get|set|return|if|else|for|foreach|while|switch|case|break|continue|'
@@ -79,7 +77,6 @@ class CodeNGramModel:
         return [t for t in tokens if t.strip()]
     
     def _tokenize_javascript(self, line):
-        """Токенизация для JavaScript/TypeScript"""
         tokens = re.findall(
             r'function|const|let|var|class|interface|type|export|import|from|default|return|'
             r'if|else|for|while|switch|case|break|continue|=>|'
@@ -89,7 +86,6 @@ class CodeNGramModel:
         return [t for t in tokens if t.strip()]
     
     def _tokenize_python(self, line):
-        """Токенизация для Python"""
         tokens = re.findall(
             r'def|class|self|import|from|as|return|if|elif|else|for|while|in|try|except|finally|with|lambda|'
             r'[a-zA-Z_][a-zA-Z0-9_]*|[0-9.]+|[+\-*/=<>!&|^~%]+|[:;,\.\(\)\[\]\{\}]|".*?"|\'.*?\'',
@@ -98,7 +94,6 @@ class CodeNGramModel:
         return [t for t in tokens if t.strip()]
     
     def _tokenize_general(self, line):
-        """Общая токенизация"""
         tokens = re.findall(
             r'[a-zA-Z_][a-zA-Z0-9_]*|[0-9.]+|[+\-*/=<>!&|^~%]+|[:;,\.\(\)\[\]\{\}]|".*?"|\'.*?\'',
             line
@@ -106,7 +101,6 @@ class CodeNGramModel:
         return [t for t in tokens if t.strip()]
     
     def _extract_sequences(self, tokens, ext):
-        """Извлекает последовательности с учетом языка"""
         sequences = []
         current_sequence = []
         
@@ -114,7 +108,7 @@ class CodeNGramModel:
             '.cs': [';', '{', '}'],
             '.js': [';', '{', '}'],
             '.ts': [';', '{', '}'],
-            '.py': [':']  # Для Python конец часто на :
+            '.py': [':']
         }
         
         enders = language_specific_enders.get(ext, [';'])
@@ -122,13 +116,10 @@ class CodeNGramModel:
         for token in tokens:
             current_sequence.append(token)
             
-            # Завершаем последовательность на языково-специфичных разделителях
             if token in enders:
                 if current_sequence:
                     sequences.append(current_sequence)
                     current_sequence = []
-            
-            # Общие завершающие ключевые слова
             elif token in {'return', 'break', 'continue', 'pass'}:
                 if current_sequence:
                     sequences.append(current_sequence)
@@ -148,12 +139,19 @@ class CodeNGramModel:
                 context_key = json.dumps(list(context))
                 serializable_ngrams[ext][context_key] = dict(counter)
         
+        serializable_vocab = {}
+        for ext, tokens in self.vocab.items():
+            serializable_vocab[ext] = list(tokens)
+        
         return {
             'version': self.version,
             'n': self.n,
             'ngrams': serializable_ngrams,
+            'vocab': serializable_vocab,
             'file_extensions': list(self.file_extensions),
-            'total_patterns': self.total_patterns
+            'total_patterns': self.total_patterns,
+            'smoothing': self.smoothing,
+            'alpha': self.alpha
         }
     
     def save(self, filepath, compress=True):
@@ -169,6 +167,7 @@ class CodeNGramModel:
                 json.dump(data, f, ensure_ascii=False, indent=2)
         
         print(f"Model saved to {filepath} with {self.total_patterns} patterns across {len(self.file_extensions)} languages")
+        print(f"Smoothing method: {self.smoothing}, Alpha: {self.alpha}")
     
     def load(self, filepath):
         """Загружает модель из JSON файла"""
@@ -183,36 +182,35 @@ class CodeNGramModel:
         self.n = data['n']
         self.file_extensions = set(data['file_extensions'])
         self.total_patterns = data['total_patterns']
+        self.smoothing = data.get('smoothing', 'none')
+        self.alpha = data.get('alpha', 1.0)
         
-        # Восстанавливаем ngrams с группировкой по расширениям
         self.ngrams = defaultdict(lambda: defaultdict(Counter))
         for ext, contexts in data['ngrams'].items():
             for context_key, tokens in contexts.items():
                 context = tuple(json.loads(context_key))
                 self.ngrams[ext][context] = Counter(tokens)
         
+        self.vocab = defaultdict(set)
+        for ext, tokens in data.get('vocab', {}).items():
+            self.vocab[ext] = set(tokens)
+        
         print(f"Model loaded from {filepath} with {self.total_patterns} patterns for {len(self.file_extensions)} languages")
-
-def get_language_patterns():
-    """Возвращает шаблоны для разных языков"""
-    return {
-        'C#': '**/*.cs',
-        'JavaScript': '**/*.js',
-        'TypeScript': '**/*.ts',
-        'Python': '**/*.py'
-    }
+        print(f"Smoothing method: {self.smoothing}, Alpha: {self.alpha}")
 
 def main():
-    parser = argparse.ArgumentParser(description='Train code suggestion model with language support')
+    parser = argparse.ArgumentParser(description='Train code suggestion model with language support and smoothing')
     parser.add_argument('--model', '-m', required=True, help='Model file path')
     parser.add_argument('--pattern', '-p', help='Glob pattern for code files')
     parser.add_argument('--language', '-l', choices=['cs', 'js', 'ts', 'py', 'all'], help='Language to train on')
     parser.add_argument('--n-gram', '-n', type=int, default=4, help='N-gram size (default: 4)')
+    parser.add_argument('--smoothing', '-s', choices=['none', 'laplace', 'kneser_ney'], 
+                       default='laplace', help='Smoothing method (default: laplace)')
+    parser.add_argument('--alpha', '-a', type=float, default=1.0, help='Alpha parameter for Laplace smoothing (default: 1.0)')
     parser.add_argument('--no-compress', action='store_true', help='Save without compression')
     
     args = parser.parse_args()
     
-    # Определяем шаблон поиска файлов
     patterns = []
     if args.language:
         language_patterns = {
@@ -231,9 +229,8 @@ def main():
         print("Please specify either --pattern or --language")
         return
     
-    model = CodeNGramModel(n=args.n_gram)
+    model = CodeNGramModel(n=args.n_gram, smoothing=args.smoothing, alpha=args.alpha)
     
-    # Если файл модели существует - загружаем и дообучаем
     model_path = args.model
     if not model_path.endswith('.gz') and not args.no_compress:
         model_path += '.gz'
@@ -244,27 +241,24 @@ def main():
         except Exception as e:
             print(f"Error loading model, creating new: {e}")
     
-    # Находим файлы по шаблонам
     all_files = []
     for pattern in patterns:
         files = glob.glob(pattern, recursive=True)
         filtered_files = [f for f in files if 'node_modules' not in f.split(os.sep)]
         all_files.extend(filtered_files)
         print(f"Found {len(filtered_files)} files for pattern: {pattern}")
-    
-    # Обучаем на каждом файле
+        
     for i, filepath in enumerate(all_files):
         print(f"Processing {i+1}/{len(all_files)}: {filepath}")
         model.train_on_file(filepath)
     
-    # Сохраняем модель
     model.save(args.model, compress=not args.no_compress)
     
-    # Статистика по языкам
     print("\nTraining completed! Statistics by language:")
     for ext in model.file_extensions:
         patterns_count = sum(len(contexts) for contexts in model.ngrams[ext].values())
-        print(f"  {ext}: {patterns_count} patterns")
+        vocab_size = len(model.vocab[ext])
+        print(f"  {ext}: {patterns_count} patterns, {vocab_size} unique tokens")
 
 if __name__ == "__main__":
     main()
