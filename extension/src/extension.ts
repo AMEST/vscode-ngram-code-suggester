@@ -80,24 +80,21 @@ export class CodeSuggester {
     }
 
     private resolveModelPath(modelPath: string): string | null {
-        if (path.isAbsolute(modelPath)) {
+        if (path.isAbsolute(modelPath))
             return modelPath;
-        }
 
         const workspaceFolders = vscode.workspace.workspaceFolders;
         if (workspaceFolders && workspaceFolders.length > 0) {
             const workspacePath = workspaceFolders[0].uri.fsPath;
             const fullPath = path.join(workspacePath, modelPath);
-            if (fs.existsSync(fullPath)) {
+            if (fs.existsSync(fullPath))
                 return fullPath;
-            }
         }
 
         const extensionPath = this.context.extensionPath;
         const extensionModelPath = path.join(extensionPath, modelPath);
-        if (fs.existsSync(extensionModelPath)) {
+        if (fs.existsSync(extensionModelPath))
             return extensionModelPath;
-        }
 
         return null;
     }
@@ -137,18 +134,16 @@ export class CodeSuggester {
         });
     }
 
-    // 🔄 ОРИГИНАЛЬНЫЙ COMPLETION PROVIDER (для Ctrl+Space)
+    // COMPLETION PROVIDER (Ctrl+Space suggestion)
     public getSuggestions(document: vscode.TextDocument, position: vscode.Position): vscode.CompletionItem[] {
-        if (!this.isModelLoaded || !this.model) {
+        if (!this.isModelLoaded || !this.model)
             return [];
-        }
 
         const fileExtension = this.getFileExtension(document);
         const languageExtensions = this.getLanguageExtensions(fileExtension);
 
-        if (!languageExtensions) {
+        if (!languageExtensions)
             return [];
-        }
 
         const text = document.getText(new vscode.Range(new vscode.Position(0, 0), position));
         const suggestions = this.generateSuggestions(text, languageExtensions);
@@ -165,7 +160,7 @@ export class CodeSuggester {
         });
     }
 
-    // 🆕 INLINE SUGGESTION PROVIDER (для Tab-дополнений)
+    // INLINE SUGGESTION PROVIDER (Tab-autocompletion)
     public getInlineSuggestions(document: vscode.TextDocument, position: vscode.Position): vscode.InlineCompletionItem[] {
         if (!this.isModelLoaded || !this.model) {
             return [];
@@ -174,18 +169,16 @@ export class CodeSuggester {
         const fileExtension = this.getFileExtension(document);
         const languageExtensions = this.getLanguageExtensions(fileExtension);
 
-        if (!languageExtensions) {
+        if (!languageExtensions)
             return [];
-        }
 
         const text = document.getText(new vscode.Range(new vscode.Position(0, 0), position));
         const suggestions = this.generateSuggestions(text, languageExtensions);
 
-        if (suggestions.length === 0) {
+        if (suggestions.length === 0)
             return [];
-        }
 
-        // Берем топ-1 предложение для inline отображения
+        // Get top-1 suggestion for inline suggest
         const topSuggestion = suggestions[0];
 
         return [
@@ -203,32 +196,29 @@ export class CodeSuggester {
 
     private getLanguageExtensions(fileExtension: string): string[] | null {
         const mainExtension = EXTENSION_TO_LANGUAGE[fileExtension];
-        if (!mainExtension) {
+        if (!mainExtension)
             return null;
-        }
         return LANGUAGE_EXTENSIONS[mainExtension] || [mainExtension];
     }
 
     private generateSuggestions(currentText: string, languageExtensions: string[]): Suggestion[] {
-        if (!this.model) {
+        if (!this.model)
             return [];
-        }
 
         const config = vscode.workspace.getConfiguration('codeSuggester');
         const maxSuggestions = config.get('maxSuggestions') as number;
         let minConfidence = config.get('minConfidence') as number;
         const useSmoothing = config.get('useSmoothing') as boolean;
+        const enableFuzzyMatching = config.get('enableFuzzyMatching') as boolean;
 
-        // Автоматическая настройка порогов для разных режимов
-        if (useSmoothing && this.model.smoothing && this.model.smoothing !== 'none') {
-            minConfidence = Math.max(minConfidence * 0.3, 0.05); // 30% от оригинального порога, но не менее 0.05
-        }
+        // Automatic threshold setting for different modes
+        if (useSmoothing && this.model.smoothing && this.model.smoothing !== 'none')
+            minConfidence = Math.max(minConfidence * 0.3, 0.05); // 30% of the original threshold, but not less than 0.05
 
         try {
             const tokens = this.tokenizeText(currentText);
-            if (tokens.length < this.model.n - 1) {
+            if (tokens.length < this.model.n - 1)
                 return [];
-            }
 
             const shouldUseSmoothing = useSmoothing &&
                 this.model.smoothing &&
@@ -236,9 +226,9 @@ export class CodeSuggester {
                 this.model.vocab;
 
             if (shouldUseSmoothing) {
-                return this.generateSuggestionsWithSmoothing(tokens, languageExtensions, maxSuggestions, minConfidence);
+                return this.generateSuggestionsWithSmoothing(tokens, languageExtensions, maxSuggestions, minConfidence, enableFuzzyMatching);
             } else {
-                return this.generateSuggestionsClassic(tokens, languageExtensions, maxSuggestions, minConfidence);
+                return this.generateSuggestionsClassic(tokens, languageExtensions, maxSuggestions, minConfidence, enableFuzzyMatching);
             }
 
         } catch (error) {
@@ -248,26 +238,24 @@ export class CodeSuggester {
     }
 
     private generateSuggestionsWithSmoothing(
-        tokens: string[],
-        languageExtensions: string[],
-        maxSuggestions: number,
-        minConfidence: number
-    ): Suggestion[] {
-        if (!this.model || !this.model.vocab) {
+        tokens: string[], 
+        languageExtensions: string[], 
+        maxSuggestions: number, 
+        minConfidence: number, 
+        enableFuzzyMatching: boolean): Suggestion[] {
+        if (!this.model || !this.model.vocab)
             return [];
-        }
 
         const context = tokens.slice(-(this.model.n - 1));
         const contextKey = JSON.stringify(context).replaceAll('","', '", "'); // replace for fix serialization between python and js
         const matches: Suggestion[] = [];
         const usedTokens = new Set<string>();
 
-        // 1. Точные совпадения контекста
+        // 1. Exact context matches
         for (const ext of languageExtensions) {
             const languageData = this.model.ngrams[ext];
-            if (!languageData) {
+            if (!languageData)
                 continue;
-            }
 
             if (languageData[contextKey]) {
                 const nextTokens = languageData[contextKey];
@@ -283,48 +271,48 @@ export class CodeSuggester {
             }
         }
 
-        // 2. Fuzzy Search (нечеткий поиск) - ВОЗВРАЩАЕМ ЭТОТ ПОДХОД
-        for (const ext of languageExtensions) {
-            const languageData = this.model.ngrams[ext];
-            if (!languageData) {
-                continue;
-            }
+        // 2. Fuzzy Search
+        if(enableFuzzyMatching) {
+            for (const ext of languageExtensions) {
+                const languageData = this.model.ngrams[ext];
+                if (!languageData)
+                    continue;
 
-            for (const [storedContextKey, nextTokens] of Object.entries(languageData)) {
-                if (storedContextKey === contextKey) {
-                    continue; // Уже обработали в точных совпадениях
-                }
+                for (const [storedContextKey, nextTokens] of Object.entries(languageData)) {
+                    if (storedContextKey === contextKey)
+                        continue; // Already processed in exact matches
 
-                const storedContext = JSON.parse(storedContextKey);
-                const similarity = this.calculateSimilarity(context, storedContext);
+                    const storedContext = JSON.parse(storedContextKey);
+                    const similarity = this.calculateSimilarity(context, storedContext);
 
-                // Используем более низкий порог для fuzzy search в режиме сглаживания
-                const fuzzyThreshold = minConfidence * 0.7;
-                if (similarity >= fuzzyThreshold) {
-                    const total = Object.values(nextTokens).reduce((sum, count) => sum + count, 0);
+                    // We use a lower threshold for fuzzy search in anti-aliasing mode
+                    const fuzzyThreshold = minConfidence * 0.7;
+                    if (similarity >= fuzzyThreshold) {
+                        const total = Object.values(nextTokens).reduce((sum, count) => sum + count, 0);
 
-                    for (const [token, count] of Object.entries(nextTokens)) {
-                        const confidence = similarity * (count / total);
-                        // Более низкий порог для fuzzy результатов
-                        if (confidence >= fuzzyThreshold && !usedTokens.has(token)) {
-                            matches.push({ token, confidence });
-                            usedTokens.add(token);
+                        for (const [token, count] of Object.entries(nextTokens)) {
+                            const confidence = similarity * (count / total);
+                            // Lower threshold for fuzzy results
+                            if (confidence >= fuzzyThreshold && !usedTokens.has(token)) {
+                                matches.push({ token, confidence });
+                                usedTokens.add(token);
+                            }
                         }
                     }
+                    if (matches.length > maxSuggestions * 35) // A limiter so as not to look for everything. Quality is likely to deteriorate, but speed should improve
+                        break;
                 }
-                if (matches.length > maxSuggestions * 35) // Ограничитель, чтобы не искать прям все. Качество скорее всего ухудшится, но скорость должна улучшиться
-                    break;
             }
         }
 
-        // 3. Сглаживание Лапласа только если предыдущие методы не дали результатов
+        // 3. Search using Laplace smoothing (if suggestions < maxSuggestions)
         if (matches.length < maxSuggestions) {
             const remainingSlots = maxSuggestions - matches.length;
             const smoothedSuggestions = this.getSmoothedSuggestions(
                 context,
                 languageExtensions,
                 remainingSlots,
-                minConfidence * 0.5, // Еще более низкий порог для сглаживания
+                minConfidence * 0.5, // Even lower threshold for smoothing
                 usedTokens
             );
             matches.push(...smoothedSuggestions);
@@ -363,7 +351,7 @@ export class CodeSuggester {
             const vocabSize = vocab.length;
             const alpha = this.model.alpha || 0.1;
 
-            // Если контекст не найден, используем общую частоту токенов
+            // If no context is found, we use a common token frequency
             if (totalCount === 0) {
                 const globalFreq = this.calculateGlobalTokenFrequency(languageData);
                 const globalTotal = Object.values(globalFreq).reduce((sum, count) => sum + count, 0);
@@ -379,7 +367,7 @@ export class CodeSuggester {
                     }
                 }
             } else {
-                // Контекст найден - используем сглаживание Лапласа
+                // Context found - using Laplace smoothing
                 for (const token of vocab) {
                     if (matches.length >= maxSlots) break;
                     if (usedTokens.has(token)) continue;
@@ -411,26 +399,21 @@ export class CodeSuggester {
     }
 
     private generateSuggestionsClassic(
-        tokens: string[],
-        languageExtensions: string[],
-        maxSuggestions: number,
-        minConfidence: number): Suggestion[] {
-        if (!this.model) {
+tokens: string[], languageExtensions: string[], maxSuggestions: number, minConfidence: number, enableFuzzyMatching: boolean): Suggestion[] {
+        if (!this.model)
             return [];
-        }
 
         try {
             const context = tokens.slice(-(this.model.n - 1));
-            const contextKey = JSON.stringify(context);
+            const contextKey = JSON.stringify(context).replaceAll('","', '", "'); // replace for fix serialization between python and js
 
             const matches: Suggestion[] = [];
 
             for (const ext of languageExtensions) {
                 const languageData = this.model.ngrams[ext];
-                if (!languageData) {
+                if (!languageData)
                     continue;
-                }
-
+                
                 if (languageData[contextKey]) {
                     const nextTokens = languageData[contextKey];
                     const total = Object.values(nextTokens).reduce((sum, count) => sum + count, 0);
@@ -441,10 +424,13 @@ export class CodeSuggester {
                     }
                 }
 
+                if (!enableFuzzyMatching)
+                    continue;
+
+                // fuzzy search
                 for (const [storedContextKey, nextTokens] of Object.entries(languageData)) {
-                    if (storedContextKey === contextKey) {
+                    if (storedContextKey === contextKey)
                         continue;
-                    }
 
                     const storedContext = JSON.parse(storedContextKey);
                     const similarity = this.calculateSimilarity(context, storedContext);
@@ -457,6 +443,8 @@ export class CodeSuggester {
                             matches.push({ token, confidence });
                         }
                     }
+                    if (matches.length > maxSuggestions * 35) // A limiter so as not to look for everything. Quality is likely to deteriorate, but speed should improve
+                        break;
                 }
             }
 
@@ -476,9 +464,8 @@ export class CodeSuggester {
 
         for (const line of lines) {
             const trimmed = line.trim();
-            if (!trimmed) {
+            if (!trimmed)
                 continue;
-            }
 
             const lineTokens = trimmed.match(
                 /[a-zA-Z_][a-zA-Z0-9_]*|[0-9.]+|[+\-*/=<>!&|^~%]+|[:;,\.\(\)\[\]\{\}]|".*?"|'.*?'/g
@@ -492,21 +479,19 @@ export class CodeSuggester {
 
     private calculateSimilarity(tokens1: string[], tokens2: string[]): number {
         const minLength = Math.min(tokens1.length, tokens2.length);
-        if (minLength === 0) {
+        if (minLength === 0)
             return 0;
-        }
 
         let matches = 0;
-        // Сравниваем с конца (самый релевантный контекст)
+        // Compare from the end (the most relevant context)
         for (let i = 1; i <= minLength; i++) {
-            if (tokens1[tokens1.length - i] === tokens2[tokens2.length - i]) {
+            if (tokens1[tokens1.length - i] === tokens2[tokens2.length - i])
                 matches++;
-            }
         }
 
-        // Взвешиваем похожесть - последние токены более важны
+        // We weigh the similarities - the latter tokens are more important
         const baseSimilarity = matches / minLength;
-        const positionWeight = matches > 0 ? 1.0 : 0; // Дополнительный вес если есть совпадения
+        const positionWeight = matches > 0 ? 1.0 : 0; // Additional weight if there are matches
 
         return baseSimilarity * positionWeight;
     }
@@ -546,20 +531,20 @@ export function activate(context: vscode.ExtensionContext) {
 
     const suggester = new CodeSuggester(context);
 
-    // 🔄 Обычные подсказки (Ctrl+Space)
+    // Simple suggestions (Ctrl+Space)
     // const completionProvider = vscode.languages.registerCompletionItemProvider(
     //     { pattern: '**/*.{cs,js,ts,py}' },
     //     new CodeCompletionProvider(suggester),
     //     '.', ' ', '(', '=', '{', '[', ':' // Триггерные символы
     // );
 
-    // 🆕 Inline подсказки (Tab-дополнения)
+    // Inline suggestions (Tab-autocomplete)
     const inlineProvider = vscode.languages.registerInlineCompletionItemProvider(
         { pattern: '**/*.{cs,js,ts,py,vue}' },
         new CodeInlineCompletionProvider(suggester)
     );
 
-    // Команды
+    // Commands
     const reloadCommand = vscode.commands.registerCommand('codeSuggester.reloadModel', async () => {
         vscode.window.showInformationMessage('Reloading code suggestion model...');
         await suggester.reloadModel();

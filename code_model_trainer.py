@@ -19,7 +19,7 @@ class CodeNGramModel:
         self.vocab = defaultdict(set)
     
     def train_on_file(self, filepath):
-        """Обучает модель на одном файле с учетом расширения"""
+        """Trains the model on a single file, taking into account the extension"""
         try:
             with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
                 content = f.read()
@@ -45,7 +45,7 @@ class CodeNGramModel:
             print(f"Error processing {filepath}: {e}")
 
     def _tokenize_code(self, content, ext):
-        """Токенизация кода с учетом конкретного языка"""
+        """Language-specific code tokenization"""
         tokens = []
         lines = content.split('\n')
         
@@ -131,7 +131,7 @@ class CodeNGramModel:
         return sequences
     
     def to_serializable(self):
-        """Конвертирует модель в сериализуемый формат"""
+        """Converts the model to a serializable format"""
         serializable_ngrams = {}
         for ext, contexts in self.ngrams.items():
             serializable_ngrams[ext] = {}
@@ -155,7 +155,7 @@ class CodeNGramModel:
         }
     
     def save(self, filepath, compress=True):
-        """Сохраняет модель в JSON файл"""
+        """Saves the model to a JSON file"""
         data = self.to_serializable()
         
         if compress:
@@ -170,7 +170,7 @@ class CodeNGramModel:
         print(f"Smoothing method: {self.smoothing}, Alpha: {self.alpha}")
     
     def load(self, filepath):
-        """Загружает модель из JSON файла"""
+        """Loads the model from the JSON file"""
         if filepath.endswith('.gz'):
             with gzip.open(filepath, 'rt', encoding='utf-8') as f:
                 data = json.load(f)
