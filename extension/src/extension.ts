@@ -178,15 +178,13 @@ export class CodeSuggester {
         if (suggestions.length === 0)
             return [];
 
-        // Get top-1 suggestion for inline suggest
-        const topSuggestion = suggestions[0];
-
-        return [
+        // Get top-3 suggestions for inline suggest
+        return suggestions.slice(0, 3).map(suggestion => 
             new vscode.InlineCompletionItem(
-                topSuggestion.token,
+                suggestion.token,
                 new vscode.Range(position, position)
             )
-        ];
+        );
     }
 
     private getFileExtension(document: vscode.TextDocument): string {
@@ -291,15 +289,14 @@ export class CodeSuggester {
                         const total = Object.values(nextTokens).reduce((sum, count) => sum + count, 0);
 
                         for (const [token, count] of Object.entries(nextTokens)) {
-                            const confidence = similarity * (count / total);
-                            // Lower threshold for fuzzy results
+                            const confidence = similarity * (count / total) * 0.8; // Reduce confidence for fuzzy matches
                             if (confidence >= fuzzyThreshold && !usedTokens.has(token)) {
                                 matches.push({ token, confidence });
                                 usedTokens.add(token);
                             }
                         }
                     }
-                    if (matches.length > maxSuggestions * 35) // A limiter so as not to look for everything. Quality is likely to deteriorate, but speed should improve
+                    if (matches.length > maxSuggestions * 100) // A limiter so as not to look for everything. Quality is likely to deteriorate, but speed should improve
                         break;
                 }
             }
@@ -439,11 +436,11 @@ tokens: string[], languageExtensions: string[], maxSuggestions: number, minConfi
                         const total = Object.values(nextTokens).reduce((sum, count) => sum + count, 0);
 
                         for (const [token, count] of Object.entries(nextTokens)) {
-                            const confidence = similarity * (count / total);
+                            const confidence = similarity * (count / total) * 0.8; // Reduce confidence for fuzzy matches
                             matches.push({ token, confidence });
                         }
                     }
-                    if (matches.length > maxSuggestions * 35) // A limiter so as not to look for everything. Quality is likely to deteriorate, but speed should improve
+                    if (matches.length > maxSuggestions * 100) // A limiter so as not to look for everything. Quality is likely to deteriorate, but speed should improve
                         break;
                 }
             }
