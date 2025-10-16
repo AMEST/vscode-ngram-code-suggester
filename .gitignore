@@ -259,3 +259,6 @@ paket-files/
 __pycache__/
 *.pyc
 extension/out
+extension/LICENSE
+extension/Readme.md
+*.vsix

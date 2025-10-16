@@ -3,7 +3,8 @@
     "displayName": "Code Suggester",
     "description": "N-gram based code suggestions with language-specific training",
     "version": "1.0.0",
-    "publisher": "Klabukov Erik",
+    "publisher": "nb47",
+    "author": "Klabukov Erik",
     "engines": {
         "vscode": "^1.60.0"
     },
@@ -91,7 +92,7 @@
         }
     },
     "scripts": {
-        "vscode:prepublish": "npm run compile",
+        "vscode:prepublish": "npm run compile && cp ../README.md . && cp ../LICENSE .",
         "compile": "tsc -p ./",
         "watch": "tsc -watch -p ./",
         "pretest": "npm run compile && npm run lint",
