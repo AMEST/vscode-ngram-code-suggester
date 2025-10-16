@@ -179,7 +179,7 @@ export class CodeSuggester {
             return [];
 
         // Get top-3 suggestions for inline suggest
-        return suggestions.slice(0, 3).map(suggestion => 
+        return suggestions.slice(0, 3).map(suggestion =>
             new vscode.InlineCompletionItem(
                 suggestion.token,
                 new vscode.Range(position, position)
@@ -208,6 +208,7 @@ export class CodeSuggester {
         let minConfidence = config.get('minConfidence') as number;
         const useSmoothing = config.get('useSmoothing') as boolean;
         const enableFuzzyMatching = config.get('enableFuzzyMatching') as boolean;
+        const maxFuzzyChecks = config.get('maxFuzzyChecks', 1000); // Limit number of context checks
 
         // Automatic threshold setting for different modes
         if (useSmoothing && this.model.smoothing && this.model.smoothing !== 'none')
@@ -224,9 +225,9 @@ export class CodeSuggester {
                 this.model.vocab;
 
             if (shouldUseSmoothing) {
-                return this.generateSuggestionsWithSmoothing(tokens, languageExtensions, maxSuggestions, minConfidence, enableFuzzyMatching);
+                return this.generateSuggestionsWithSmoothing(tokens, languageExtensions, maxSuggestions, minConfidence, enableFuzzyMatching, maxFuzzyChecks);
             } else {
-                return this.generateSuggestionsClassic(tokens, languageExtensions, maxSuggestions, minConfidence, enableFuzzyMatching);
+                return this.generateSuggestionsClassic(tokens, languageExtensions, maxSuggestions, minConfidence, enableFuzzyMatching, maxFuzzyChecks);
             }
 
         } catch (error) {
@@ -236,11 +237,12 @@ export class CodeSuggester {
     }
 
     private generateSuggestionsWithSmoothing(
-        tokens: string[], 
-        languageExtensions: string[], 
-        maxSuggestions: number, 
-        minConfidence: number, 
-        enableFuzzyMatching: boolean): Suggestion[] {
+        tokens: string[],
+        languageExtensions: string[],
+        maxSuggestions: number,
+        minConfidence: number,
+        enableFuzzyMatching: boolean,
+        maxFuzzyChecks: number): Suggestion[] {
         if (!this.model || !this.model.vocab)
             return [];
 
@@ -270,13 +272,16 @@ export class CodeSuggester {
         }
 
         // 2. Fuzzy Search
-        if(enableFuzzyMatching) {
+        if (enableFuzzyMatching && matches.length <= maxSuggestions * 3) {
+            let fuzzyChecksCount = 0;
             for (const ext of languageExtensions) {
                 const languageData = this.model.ngrams[ext];
                 if (!languageData)
                     continue;
 
                 for (const [storedContextKey, nextTokens] of Object.entries(languageData)) {
+                    if (fuzzyChecksCount >= maxFuzzyChecks) break;
+                    fuzzyChecksCount++;
                     if (storedContextKey === contextKey)
                         continue; // Already processed in exact matches
 
@@ -396,7 +401,8 @@ export class CodeSuggester {
     }
 
     private generateSuggestionsClassic(
-tokens: string[], languageExtensions: string[], maxSuggestions: number, minConfidence: number, enableFuzzyMatching: boolean): Suggestion[] {
+        tokens: string[], languageExtensions: string[], maxSuggestions: number, minConfidence: number, enableFuzzyMatching: boolean,
+        maxFuzzyChecks: number): Suggestion[] {
         if (!this.model)
             return [];
 
@@ -410,7 +416,7 @@ tokens: string[], languageExtensions: string[], maxSuggestions: number, minConfi
                 const languageData = this.model.ngrams[ext];
                 if (!languageData)
                     continue;
-                
+
                 if (languageData[contextKey]) {
                     const nextTokens = languageData[contextKey];
                     const total = Object.values(nextTokens).reduce((sum, count) => sum + count, 0);
@@ -423,9 +429,14 @@ tokens: string[], languageExtensions: string[], maxSuggestions: number, minConfi
 
                 if (!enableFuzzyMatching)
                     continue;
+                if (matches.length > maxSuggestions * 2)
+                    continue;
 
                 // fuzzy search
+                let fuzzyChecksCount = 0;
                 for (const [storedContextKey, nextTokens] of Object.entries(languageData)) {
+                    if (fuzzyChecksCount >= maxFuzzyChecks) break;
+                    fuzzyChecksCount++;
                     if (storedContextKey === contextKey)
                         continue;
 
@@ -440,7 +451,7 @@ tokens: string[], languageExtensions: string[], maxSuggestions: number, minConfi
                             matches.push({ token, confidence });
                         }
                     }
-                    if (matches.length > maxSuggestions * 100) // A limiter so as not to look for everything. Quality is likely to deteriorate, but speed should improve
+                    if (matches.length > maxSuggestions * 45) // A limiter so as not to look for everything. Quality is likely to deteriorate, but speed should improve
                         break;
                 }
             }
@@ -519,6 +530,23 @@ class CodeInlineCompletionProvider implements vscode.InlineCompletionItemProvide
         context: vscode.InlineCompletionContext,
         token: vscode.CancellationToken
     ): vscode.ProviderResult<vscode.InlineCompletionItem[] | vscode.InlineCompletionList> {
+        const config = vscode.workspace.getConfiguration('codeSuggester');
+        const useTriggerCharacters = config.get('useTriggerCharacters') as boolean;
+
+        if (!useTriggerCharacters)
+            return this.suggester.getInlineSuggestions(document, position);
+
+        const triggerCharacters = new Set(['.', ',', ' ', '(', ')', '=', '{', '[', ':', ';']);
+        
+        // Get the character before the cursor
+        const line = document.lineAt(position.line).text;
+        const charBeforeCursor = line[position.character - 1];
+        
+        // Return empty array if character is not in trigger set
+        if (!charBeforeCursor || !triggerCharacters.has(charBeforeCursor)) {
+            return [];
+        }
+        
         return this.suggester.getInlineSuggestions(document, position);
     }
 }

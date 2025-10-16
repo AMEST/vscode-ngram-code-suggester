@@ -7,6 +7,7 @@
 - [VSCode N-Gram Code Suggester](#vscode-n-gram-code-suggester)
   - [Overview](#overview)
   - [Quick Start](#quick-start)
+  - [Extension Settings](#extension-settings)
   - [How to Train model](#how-to-train-model)
       - [CLI Args](#cli-args)
       - [Example](#example)
@@ -63,6 +64,27 @@ The idea is to show that even a *single‑sentence* context can yield useful sug
 4. **Enjoy autocompletion**
 
    Open a C# file, type a few tokens (words), and wait for auto‑suggestions.
+
+> **⚠️  Important about configuration**   
+> If you train model on big dataset (after train, model have more 2 million patterns), you need to disable "Fuzzy search", "Use Smoothing" because suggest generation will become very slow. If suggest generation still slowly, enable "Use Trigger Characters".   
+> If you dataset medium or small, don't disable this configuration. It's help to find suggestion if model don't contains equal pattern. Change "Min Confidence", "Max Fuzzy Checks" for control suggestion quality 
+
+## Extension Settings
+
+Below is a quick reference to all user‑configurable options for the extension.  
+Add any of these to your *workspace* or *user* `settings.json` to tweak the behaviour.
+
+| Setting                                | Type    | Default                  | Constraints | Description                                                                                                                                                    |
+| -------------------------------------- | ------- | ------------------------ | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **codeSuggester.modelPath**            | string  | `./models/model.json.gz` | –           | Path to the trained model file. Supports plain `.json` or gzipped `.json.gz`.                                                                                  |
+| **codeSuggester.maxSuggestions**       | number  | `5`                      | `1 – 10`    | Maximum number of suggestions displayed in the IntelliSense list.                                                                                              |
+| **codeSuggester.maxFuzzyChecks**       | number  | `2000`                   | `≥ 1000`    | Maximum number of fuzzy‑search checks performed. Higher values give better matches but can be slow on large models.                                            |
+| **codeSuggester.minConfidence**        | number  | `0.2`                    | `0.0 – 1.0` | Minimum confidence threshold for a suggestion to be shown.                                                                                                     |
+| **codeSuggester.enableFuzzyMatching**  | boolean | `true`                   | –           | Turns on fuzzy matching for similar code patterns. Recommended only for small models.                                                                          |
+| **codeSuggester.useSmoothing**         | boolean | `true`                   | –           | Enables smoothing algorithms (Laplace / Kneser‑Ney) to better handle rare n‑grams. Suggested only for small models.                                            |
+| **codeSuggester.useTriggerCharacters** | boolean | `false`                  | –           | When enabled, suggestions are only triggered when the cursor is placed on a trigger character (`. , ( ) [ { : ; =`). Useful if auto‑suggestions feel sluggish. |
+
+Experiment with the numeric limits and booleans to find the sweet spot for your project’s size and performance requirements.
 
 ---
 

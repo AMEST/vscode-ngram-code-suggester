@@ -262,3 +262,4 @@ extension/out
 extension/LICENSE
 extension/Readme.md
 *.vsix
+pre_trained_models/

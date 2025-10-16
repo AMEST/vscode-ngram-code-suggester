@@ -47,9 +47,15 @@
                     "minimum": 1,
                     "maximum": 10
                 },
+                "codeSuggester.maxFuzzyChecks": {
+                    "type": "number",
+                    "description": "Maximum number of checks when Fuzzy Search. Because is so slowly on big models",
+                    "default": 2000,
+                    "minimum": 1000
+                },
                 "codeSuggester.minConfidence": {
                     "type": "number",
-                    "default": 0.1,
+                    "default": 0.2,
                     "description": "Minimum confidence threshold for suggestions (0.0 - 1.0)",
                     "minimum": 0.0,
                     "maximum": 1.0
@@ -57,12 +63,17 @@
                 "codeSuggester.enableFuzzyMatching": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Enable fuzzy matching for similar code patterns"
+                    "description": "Enable fuzzy matching for similar code patterns. Use only on small models."
                 },
                 "codeSuggester.useSmoothing": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Use smoothing algorithms for better handling of rare n-grams"
+                    "description": "Use smoothing algorithms for better handling of rare n-grams. Use only on small models"
+                },
+                "codeSuggester.useTriggerCharacters": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Trigger suggestion only when cursor on trigger char (typed or mouse click). Chars: \"., ()[{:;=\". If suggestions work so slowly"
                 }
             }
         },
