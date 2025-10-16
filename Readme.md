@@ -10,6 +10,7 @@
   - [How to Train model](#how-to-train-model)
       - [CLI Args](#cli-args)
       - [Example](#example)
+      - [Github project for train model](#github-project-for-train-model)
   - [License](#license)
 
 ## Overview
@@ -95,6 +96,17 @@ python3 code_model_trainer.py --model ./model.json --language js
 # Mixed use without compression
 python3 code_model_trainer.py --model ./model.json --pattern "src/**/*.ts" --language cs --no-compress
 ```
+#### Github project for train model
+
+Clone repose in list and train you model:
+1. CSharp:
+   1. https://github.com/dotnet/aspnetcore
+   2. https://github.com/dotnet/roslyn
+2. Python
+   1. https://github.com/django/django
+3. TypeScript & JavaScript
+   1. https://github.com/angular/angular
+   2. https://github.com/facebook/react
 
 ---
 
