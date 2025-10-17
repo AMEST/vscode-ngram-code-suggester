@@ -1,6 +1,6 @@
 # VSCode N-Gram Code Suggester
 > **⚠️  Experimental Project – Not for Production Use**  
-> This repository demonstrates a research prototype that implements a simple n‑gram language model for code completion in VS Code. It is **not** guaranteed to be stable, fast, or secure enough for production workloads. Use at your own risk, and please report issues or feature requests in the issues tracker.
+> This repository demonstrates a research prototype that implements a simple n‑gram language model for code completion in VS Code. It is **not** guaranteed to be stable, fast, or secure enough for production workloads. Use at your own risk.
 
 ---
 
@@ -18,11 +18,11 @@
 
 **VSCode N‑Gram Code Suggester** is a proof‑of‑concept that combines:
 
-| Component                   | Description                                                                                                                                |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Python training utility** | Leverages `argparse` to train an n‑gram model on a codebase. Supports a handful of languages (C#, JavaScript, TypeScript, Python, or all). |
-| **VS Code extension**       | Hooks into the editor’s Inline Suggest API and uses the trained n‑gram model to surface context‑aware completions.                         |
-| **Model file**              | A lightweight pickled model that stores trigram/tag frequencies.                                                                           |
+| Component                   | Description                                                                                                                |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| **Python training utility** | CLI utility for train an n‑gram model on a codebase. Supports a handful of languages (C#, JavaScript, TypeScript, Python). |
+| **VS Code extension**       | Hooks into the editor’s Inline Suggest API and uses the trained n‑gram model to surface context‑aware completions.         |
+| **Model file**              | A lightweight model that stores trigram/tag frequencies.                                                                   |
 
 The idea is to show that even a *single‑sentence* context can yield useful suggestions, without the heavy machinery of large neural models.
 
@@ -58,7 +58,7 @@ The idea is to show that even a *single‑sentence* context can yield useful sug
    vsce package
 
    # Install VSIX in VS Code
-   code --install-extension vscode-ngram-suggester-0.1.0.vsix
+   code --install-extension vscode-ngram-suggester-1.0.0.vsix
    ```
 
 4. **Enjoy autocompletion**
@@ -99,7 +99,7 @@ For train model, need using python script `code_model_trainer.py`. Script scan c
 | --------------- | ---------- | ------------------- | --------------------- | --------------- | ----------------------------- | ---------------------------------------------------------------- |
 | `--model`       | `-m`       | **Required**        | string (file path)    | –               | –                             | Path to the model file                                           |
 | `--pattern`     | `-p`       | Optional            | string (glob pattern) | –               | –                             | Glob pattern to match code files                                 |
-| `--language`    | `-l`       | Optional            | string                | –               | `cs`, `js`, `ts`, `py`, `all` | Programming language(s) to train on                              |
+| `--language`    | `-l`       | Optional            | string                | –               | `cs`, `js`, `ts`, `py`, `all` | Predefined glob pattern for programming language                 |
 | `--n-gram`      | `-n`       | Optional            | integer               | `4`             | –                             | Size of the n‑gram (default: 4)                                  |
 | `--smoothing`   | `-s`       | Optional            | string                | `laplace`       | `none`, `laplace`             | Smoothing method (default: laplace)                              |
 | `--alpha`       | `-a`       | Optional            | float                 | `1.0`           | –                             | Alpha parameter for Laplace smoothing (default: 1.0)             |
