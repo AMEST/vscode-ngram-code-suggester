@@ -148,6 +148,8 @@ export class CodeSuggester {
         const text = document.getText(new vscode.Range(new vscode.Position(0, 0), position));
         const suggestions = this.generateSuggestions(text, languageExtensions);
 
+        const shouldAddSpace = this.shouldAddSpaceBeforeSuggestion(document, position);
+
         return suggestions.map((suggestion, index) => {
             const item = new vscode.CompletionItem(
                 suggestion.token,
@@ -155,7 +157,7 @@ export class CodeSuggester {
             );
             item.detail = `Confidence: ${(suggestion.confidence * 100).toFixed(1)}%`;
             item.sortText = index.toString().padStart(5, '0');
-            item.insertText = suggestion.token;
+            item.insertText = shouldAddSpace ? ` ${suggestion.token}` : suggestion.token;
             return item;
         });
     }
@@ -178,10 +180,11 @@ export class CodeSuggester {
         if (suggestions.length === 0)
             return [];
 
-        // Get top-3 suggestions for inline suggest
-        return suggestions.slice(0, 3).map(suggestion =>
+        const shouldAddSpace = this.shouldAddSpaceBeforeSuggestion(document, position);
+
+        return suggestions.map(suggestion =>
             new vscode.InlineCompletionItem(
-                suggestion.token,
+                shouldAddSpace ? ` ${suggestion.token}` : suggestion.token,
                 new vscode.Range(position, position)
             )
         );
@@ -509,6 +512,13 @@ export class CodeSuggester {
         this.isModelLoaded = false;
         await this.loadModel();
     }
+
+    private shouldAddSpaceBeforeSuggestion(document: vscode.TextDocument, position: vscode.Position): boolean {
+        const textBeforeCursor = document.getText(new vscode.Range(new vscode.Position(0, 0), position));
+        const lastChar = textBeforeCursor.trimEnd().slice(-1);
+        const lastWord = textBeforeCursor.trim().split(/\s+/).pop();
+        return (lastChar === '=' || lastWord === 'new') && !textBeforeCursor.endsWith(' ');
+    }
 }
 
 // 🔄 REGULAR COMPLETION PROVIDER
@@ -537,16 +547,16 @@ class CodeInlineCompletionProvider implements vscode.InlineCompletionItemProvide
             return this.suggester.getInlineSuggestions(document, position);
 
         const triggerCharacters = new Set(['.', ',', ' ', '(', ')', '=', '{', '[', ':', ';']);
-        
+
         // Get the character before the cursor
         const line = document.lineAt(position.line).text;
         const charBeforeCursor = line[position.character - 1];
-        
+
         // Return empty array if character is not in trigger set
         if (!charBeforeCursor || !triggerCharacters.has(charBeforeCursor)) {
             return [];
         }
-        
+
         return this.suggester.getInlineSuggestions(document, position);
     }
 }
