@@ -517,7 +517,7 @@ export class CodeSuggester {
         const textBeforeCursor = document.getText(new vscode.Range(new vscode.Position(0, 0), position));
         const lastChar = textBeforeCursor.trimEnd().slice(-1);
         const lastWord = textBeforeCursor.trim().split(/\s+/).pop();
-        return (lastChar === '=' || lastWord === 'new') && !textBeforeCursor.endsWith(' ');
+        return (lastChar === '=' || lastWord === 'new' || lastWord === 'await') && !textBeforeCursor.endsWith(' ');
     }
 }
 
