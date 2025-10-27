@@ -58,7 +58,7 @@ The idea is to show that even a *single‑sentence* context can yield useful sug
    vsce package
 
    # Install VSIX in VS Code
-   code --install-extension vscode-ngram-suggester-1.0.0.vsix
+   code --install-extension vscode-ngram-suggester-1.1.0.vsix
    ```
 
 4. **Enjoy autocompletion**
