@@ -103,7 +103,7 @@
         }
     },
     "scripts": {
-        "vscode:prepublish": "npm run compile && cp ../Readme.md . && cp ../LICENSE .",
+        "vscode:prepublish": "npm run compile && cp ../LICENSE .",
         "compile": "tsc -p ./",
         "watch": "tsc -watch -p ./",
         "pretest": "npm run compile && npm run lint",
