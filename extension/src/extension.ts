@@ -48,7 +48,7 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
     const reloadProjectContextCommand = vscode.commands.registerCommand('codeSuggester.reloadProjectContext', () => {
-        suggester.clearProjectContext(); // clear и перезагрузка произойдет автоматически
+        suggester.clearProjectContext(); // clear and reload will happen automatically
         vscode.window.showInformationMessage('Project context reloaded from open files!');
     });
 
