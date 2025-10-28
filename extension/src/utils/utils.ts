@@ -30,10 +30,7 @@ export function calculateSimilarity(tokens1: string[], tokens2: string[]): numbe
     }
 
     // We weigh the similarities - the latter tokens are more important
-    const baseSimilarity = matches / minLength;
-    const positionWeight = matches > 0 ? 1.0 : 0; // Additional weight if there are matches
-
-    return baseSimilarity * positionWeight;
+    return matches / minLength;
 }
 
 export function calculateGlobalTokenFrequency(languageData: any): { [token: string]: number } {
