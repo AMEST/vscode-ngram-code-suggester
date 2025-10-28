@@ -42,7 +42,6 @@ export class CodeSuggester {
             const modelData = await this.readModelFile(fullModelPath);
             this.model = modelData;
             this.isModelLoaded = true;
-
             // Update N in project model
             this.projectModel = new ProjectContextModel(this.model.n);
 
@@ -155,7 +154,7 @@ export class CodeSuggester {
             return [];
 
         const text = document.getText(new vscode.Range(new vscode.Position(0, 0), position));
-        const suggestions = this.generateSuggestions(text, languageExtensions);
+        const suggestions = this.generateCombinedSuggestions(text, languageExtensions, document);
 
         const shouldAddSpace = this.shouldAddSpaceBeforeSuggestion(document, position);
 
@@ -230,14 +229,17 @@ export class CodeSuggester {
 
             if (useSmoothing && this.model.smoothing && this.model.smoothing !== 'none') {
                 minConfidence = Math.max(minConfidence * 0.3, 0.05);
-                globalSuggestions = this.generateSuggestionsWithSmoothing(
-                    tokens, languageExtensions, maxSuggestions, minConfidence, enableFuzzyMatching, maxFuzzyChecks
-                );
-            } else {
-                globalSuggestions = this.generateSuggestionsClassic(
-                    tokens, languageExtensions, maxSuggestions, minConfidence, enableFuzzyMatching, maxFuzzyChecks
-                );
             }
+
+            globalSuggestions = this.generateSuggestions(
+                tokens,
+                languageExtensions,
+                maxSuggestions,
+                minConfidence,
+                enableFuzzyMatching,
+                maxFuzzyChecks,
+                Boolean(useSmoothing && this.model.smoothing && this.model.smoothing !== 'none')
+            );
 
             // fill suggest source
             globalSuggestions = globalSuggestions.map(s => ({ ...s, source: 'global' as const }));
@@ -245,7 +247,7 @@ export class CodeSuggester {
 
         // Generate project context suggestions. if enabled
         if (useProjectContext && document) {
-            const projectMinConfidence = Math.max(minConfidence * 0.7, 0.02); // Less min confidence for project suggestions
+            const projectMinConfidence = Math.max(minConfidence * 0.7, 0.02);// Less min confidence for project suggestions
             projectSuggestions = this.projectModel.generateProjectSuggestions(
                 tokens,
                 languageExtensions,
@@ -256,17 +258,14 @@ export class CodeSuggester {
 
         // Concat and sort suggestions
         const allSuggestions = [...globalSuggestions, ...projectSuggestions];
-
         // Deduplicate suggestion and save suggestion with max confidence
         const uniqueSuggestions = this.deduplicateSuggestions(allSuggestions);
 
         return uniqueSuggestions
             .sort((a, b) => {
-                // At first, sort use confidence
                 if (Math.abs(b.confidence - a.confidence) > 0.05) {
                     return b.confidence - a.confidence;
                 }
-                // When we are close to certainty, we give preference to project hints
                 if (a.source !== b.source) {
                     return a.source === 'project' ? -1 : 1;
                 }
@@ -300,59 +299,24 @@ export class CodeSuggester {
         return LANGUAGE_EXTENSIONS[mainExtension] || [mainExtension];
     }
 
-    private generateSuggestions(currentText: string, languageExtensions: string[]): Suggestion[] {
-        if (!this.model)
-            return [];
-
-        const config = vscode.workspace.getConfiguration('codeSuggester');
-        const maxSuggestions = config.get('maxSuggestions') as number;
-        let minConfidence = config.get('minConfidence') as number;
-        const useSmoothing = config.get('useSmoothing') as boolean;
-        const enableFuzzyMatching = config.get('enableFuzzyMatching') as boolean;
-        const maxFuzzyChecks = config.get('maxFuzzyChecks', 1000); // Limit number of context checks
-
-        // Automatic threshold setting for different modes
-        if (useSmoothing && this.model.smoothing && this.model.smoothing !== 'none')
-            minConfidence = Math.max(minConfidence * 0.3, 0.05); // 30% of the original threshold, but not less than 0.05
-
-        try {
-            const tokens = tokenizeText(currentText);
-            if (tokens.length < this.model.n - 1)
-                return [];
-
-            const shouldUseSmoothing = useSmoothing &&
-                this.model.smoothing &&
-                this.model.smoothing !== 'none' &&
-                this.model.vocab;
-
-            if (shouldUseSmoothing) {
-                return this.generateSuggestionsWithSmoothing(tokens, languageExtensions, maxSuggestions, minConfidence, enableFuzzyMatching, maxFuzzyChecks);
-            } else {
-                return this.generateSuggestionsClassic(tokens, languageExtensions, maxSuggestions, minConfidence, enableFuzzyMatching, maxFuzzyChecks);
-            }
-
-        } catch (error) {
-            console.error('Error generating suggestions:', error);
-            return [];
-        }
-    }
-
-    private generateSuggestionsWithSmoothing(
+    private generateSuggestions(
         tokens: string[],
         languageExtensions: string[],
         maxSuggestions: number,
         minConfidence: number,
         enableFuzzyMatching: boolean,
-        maxFuzzyChecks: number): Suggestion[] {
-        if (!this.model || !this.model.vocab)
+        maxFuzzyChecks: number,
+        useSmoothing: boolean = false
+    ): Suggestion[] {
+        if (!this.model)
             return [];
 
         const context = tokens.slice(-(this.model.n - 1));
-        const contextKey = JSON.stringify(context).replaceAll('","', '", "'); // replace for fix serialization between python and js
+        const contextKey = JSON.stringify(context).replaceAll('","', '", "');// replace for fix serialization between python and js
         const matches: Suggestion[] = [];
         const usedTokens = new Set<string>();
 
-        // 1. Exact context matches
+        // Exact matches
         for (const ext of languageExtensions) {
             const languageData = this.model.ngrams[ext];
             if (!languageData)
@@ -372,8 +336,8 @@ export class CodeSuggester {
             }
         }
 
-        // 2. Fuzzy Search
-        if (enableFuzzyMatching && matches.length <= maxSuggestions * 3) {
+        // Fuzzy matches
+        if (enableFuzzyMatching && matches.length <= maxSuggestions * (useSmoothing ? 3 : 2)) {
             let fuzzyChecksCount = 0;
             for (const ext of languageExtensions) {
                 const languageData = this.model.ngrams[ext];
@@ -384,38 +348,37 @@ export class CodeSuggester {
                     if (fuzzyChecksCount >= maxFuzzyChecks) break;
                     fuzzyChecksCount++;
                     if (storedContextKey === contextKey)
-                        continue; // Already processed in exact matches
+                        continue;
 
                     const storedContext = JSON.parse(storedContextKey);
                     const similarity = calculateSimilarity(context, storedContext);
+                    const fuzzyThreshold = minConfidence * (useSmoothing ? 0.7 : 1.0);
 
-                    // We use a lower threshold for fuzzy search in anti-aliasing mode
-                    const fuzzyThreshold = minConfidence * 0.7;
                     if (similarity >= fuzzyThreshold) {
                         const total = Object.values(nextTokens).reduce((sum, count) => sum + count, 0);
 
                         for (const [token, count] of Object.entries(nextTokens)) {
-                            const confidence = similarity * (count / total) * 0.8; // Reduce confidence for fuzzy matches
+                            const confidence = similarity * (count / total) * (useSmoothing ? 0.8 : 1.0);
                             if (confidence >= fuzzyThreshold && !usedTokens.has(token)) {
                                 matches.push({ token, confidence });
                                 usedTokens.add(token);
                             }
                         }
                     }
-                    if (matches.length > maxSuggestions * 100) // A limiter so as not to look for everything. Quality is likely to deteriorate, but speed should improve
+                    if (matches.length > maxSuggestions * (useSmoothing ? 100 : 45))
                         break;
                 }
             }
         }
 
-        // 3. Search using Laplace smoothing (if suggestions < maxSuggestions)
-        if (matches.length < maxSuggestions) {
+        // Smoothing
+        if (useSmoothing && this.model.vocab && matches.length < maxSuggestions) {
             const remainingSlots = maxSuggestions - matches.length;
             const smoothedSuggestions = this.getSmoothedSuggestions(
                 context,
                 languageExtensions,
                 remainingSlots,
-                minConfidence * 0.5, // Even lower threshold for smoothing
+                minConfidence * 0.5,
                 usedTokens
             );
             matches.push(...smoothedSuggestions);
@@ -438,7 +401,7 @@ export class CodeSuggester {
         }
 
         const matches: Suggestion[] = [];
-        const contextKey = JSON.stringify(context).replaceAll('","', '", "'); // replace for fix serialization between python and js
+        const contextKey = JSON.stringify(context).replaceAll('","', '", "');
 
         for (const ext of languageExtensions) {
             if (matches.length >= maxSlots) break;
@@ -454,7 +417,6 @@ export class CodeSuggester {
             const vocabSize = vocab.length;
             const alpha = this.model.alpha || 0.1;
 
-            // If no context is found, we use a common token frequency
             if (totalCount === 0) {
                 const globalFreq = calculateGlobalTokenFrequency(languageData);
                 const globalTotal = Object.values(globalFreq).reduce((sum, count) => sum + count, 0);
@@ -470,7 +432,6 @@ export class CodeSuggester {
                     }
                 }
             } else {
-                // Context found - using Laplace smoothing
                 for (const token of vocab) {
                     if (matches.length >= maxSlots) break;
                     if (usedTokens.has(token)) continue;
@@ -489,72 +450,6 @@ export class CodeSuggester {
         return matches;
     }
 
-    private generateSuggestionsClassic(
-        tokens: string[], languageExtensions: string[], maxSuggestions: number, minConfidence: number, enableFuzzyMatching: boolean,
-        maxFuzzyChecks: number): Suggestion[] {
-        if (!this.model)
-            return [];
-
-        try {
-            const context = tokens.slice(-(this.model.n - 1));
-            const contextKey = JSON.stringify(context).replaceAll('","', '", "'); // replace for fix serialization between python and js
-
-            const matches: Suggestion[] = [];
-
-            for (const ext of languageExtensions) {
-                const languageData = this.model.ngrams[ext];
-                if (!languageData)
-                    continue;
-
-                if (languageData[contextKey]) {
-                    const nextTokens = languageData[contextKey];
-                    const total = Object.values(nextTokens).reduce((sum, count) => sum + count, 0);
-
-                    for (const [token, count] of Object.entries(nextTokens)) {
-                        const confidence = count / total;
-                        matches.push({ token, confidence });
-                    }
-                }
-
-                if (!enableFuzzyMatching)
-                    continue;
-                if (matches.length > maxSuggestions * 2)
-                    continue;
-
-                // fuzzy search
-                let fuzzyChecksCount = 0;
-                for (const [storedContextKey, nextTokens] of Object.entries(languageData)) {
-                    if (fuzzyChecksCount >= maxFuzzyChecks) break;
-                    fuzzyChecksCount++;
-                    if (storedContextKey === contextKey)
-                        continue;
-
-                    const storedContext = JSON.parse(storedContextKey);
-                    const similarity = calculateSimilarity(context, storedContext);
-
-                    if (similarity >= minConfidence) {
-                        const total = Object.values(nextTokens).reduce((sum, count) => sum + count, 0);
-
-                        for (const [token, count] of Object.entries(nextTokens)) {
-                            const confidence = similarity * (count / total) * 0.8; // Reduce confidence for fuzzy matches
-                            matches.push({ token, confidence });
-                        }
-                    }
-                    if (matches.length > maxSuggestions * 45) // A limiter so as not to look for everything. Quality is likely to deteriorate, but speed should improve
-                        break;
-                }
-            }
-
-            return matches
-                .sort((a, b) => b.confidence - a.confidence)
-                .slice(0, maxSuggestions);
-
-        } catch (error) {
-            console.error('Error generating suggestions:', error);
-            return [];
-        }
-    }
-
     public async reloadModel() {
         this.model = null;
         this.isModelLoaded = false;
@@ -563,8 +458,6 @@ export class CodeSuggester {
 
     public clearProjectContext() {
         this.projectModel.clear();
-        
-        // Reload current opened files
         vscode.workspace.textDocuments.forEach(document => {
             this.projectModel.addDocument(document);
         });

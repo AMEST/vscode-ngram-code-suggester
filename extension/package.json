@@ -62,13 +62,13 @@
                 },
                 "codeSuggester.enableFuzzyMatching": {
                     "type": "boolean",
-                    "default": true,
-                    "description": "Enable fuzzy matching for similar code patterns. Use only on small models."
+                    "default": false,
+                    "description": "Enable fuzzy matching for similar code patterns. ⚠️Use only on small models⚠️"
                 },
                 "codeSuggester.useSmoothing": {
                     "type": "boolean",
-                    "default": true,
-                    "description": "Use smoothing algorithms for better handling of rare n-grams. Use only on small models"
+                    "default": false,
+                    "description": "Use smoothing algorithms for better handling of rare n-grams. ⚠️Use only on small models⚠️"
                 },
                 "codeSuggester.useTriggerCharacters": {
                     "type": "boolean",
