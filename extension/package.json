@@ -2,7 +2,7 @@
     "name": "vscode-ngram-suggester",
     "displayName": "Code Suggester",
     "description": "N-gram based code suggestions with language-specific training",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "publisher": "nb47",
     "author": "Klabukov Erik",
     "engines": {
@@ -62,18 +62,28 @@
                 },
                 "codeSuggester.enableFuzzyMatching": {
                     "type": "boolean",
-                    "default": true,
-                    "description": "Enable fuzzy matching for similar code patterns. Use only on small models."
+                    "default": false,
+                    "description": "Enable fuzzy matching for similar code patterns. ⚠️Use only on small models⚠️"
                 },
                 "codeSuggester.useSmoothing": {
                     "type": "boolean",
-                    "default": true,
-                    "description": "Use smoothing algorithms for better handling of rare n-grams. Use only on small models"
+                    "default": false,
+                    "description": "Use smoothing algorithms for better handling of rare n-grams. ⚠️Use only on small models⚠️"
                 },
                 "codeSuggester.useTriggerCharacters": {
                     "type": "boolean",
                     "default": false,
                     "description": "Trigger suggestion only when cursor on trigger char (typed or mouse click). Chars: \"., ()[{:;=\". If suggestions work so slowly"
+                },
+                "codeSuggester.useProjectContext": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Use project context from open files for suggestions"
+                },
+                "codeSuggester.updateOnFileChange": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Update project model when files are modified (may impact performance)"
                 }
             }
         },
@@ -86,6 +96,16 @@
             {
                 "command": "codeSuggester.showStatus",
                 "title": "Code Suggester: Show Status",
+                "category": "Code Suggester"
+            },
+            {
+                "command": "codeSuggester.clearProjectContext",
+                "title": "Code Suggester: Clear project context Model",
+                "category": "Code Suggester"
+            },
+            {
+                "command": "codeSuggester.reloadProjectContext",
+                "title": "Code Suggester: Reload Project Context Model",
                 "category": "Code Suggester"
             }
         ],

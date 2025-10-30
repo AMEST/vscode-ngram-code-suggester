@@ -28,7 +28,7 @@ The idea is to show that even a *single‑sentence* context can yield useful sug
    vsce package
 
    # Install VSIX in VS Code
-   code --install-extension vscode-ngram-suggester-1.0.0.vsix
+   code --install-extension vscode-ngram-suggester-1.1.0.vsix
    ```
 
 2. **Download a pre-trained model**  
@@ -54,10 +54,11 @@ Add any of these to your *workspace* or *user* `settings.json` to tweak the beha
 | **codeSuggester.maxSuggestions**       | number  | `5`                      | `1 – 10`    | Maximum number of suggestions displayed in the IntelliSense list.                                                                                              |
 | **codeSuggester.maxFuzzyChecks**       | number  | `2000`                   | `≥ 1000`    | Maximum number of fuzzy‑search checks performed. Higher values give better matches but can be slow on large models.                                            |
 | **codeSuggester.minConfidence**        | number  | `0.2`                    | `0.0 – 1.0` | Minimum confidence threshold for a suggestion to be shown.                                                                                                     |
-| **codeSuggester.enableFuzzyMatching**  | boolean | `true`                   | –           | Turns on fuzzy matching for similar code patterns. Recommended only for small models.                                                                          |
-| **codeSuggester.useSmoothing**         | boolean | `true`                   | –           | Enables smoothing algorithms (Laplace / Kneser‑Ney) to better handle rare n‑grams. Suggested only for small models.                                            |
+| **codeSuggester.enableFuzzyMatching**  | boolean | `false`                  | –           | Turns on fuzzy matching for similar code patterns. ⚠️Use only on small models⚠️                                                                                  |
+| **codeSuggester.useSmoothing**         | boolean | `false`                  | –           | Enables smoothing algorithms to better handle rare n‑grams. ⚠️Use only on small models⚠️                                                  |
 | **codeSuggester.useTriggerCharacters** | boolean | `false`                  | –           | When enabled, suggestions are only triggered when the cursor is placed on a trigger character (`. , ( ) [ { : ; =`). Useful if auto‑suggestions feel sluggish. |
-
+| **codeSuggester.useProjectContext**    | boolean | `true`                   | -           | Use project context from open files for suggestions                                                                                                            |
+| **codeSuggester.updateOnFileChange**   | boolean | `false`                  | -           | Update project model when files are modified (may impact performance)                                                                                          |
 ---
 
 ## Model Training
