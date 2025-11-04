@@ -126,8 +126,11 @@ Clone repose in list and train you model:
 1. CSharp:
    1. https://github.com/dotnet/aspnetcore
    2. https://github.com/dotnet/roslyn
+   3. https://github.com/oneananda/C_Sharp_Examples -- simple examples
+   4. https://github.com/aspnetboilerplate/aspnetboilerplate
 2. Python
    1. https://github.com/django/django
+   2. https://github.com/celery/celery
 3. TypeScript & JavaScript
    1. https://github.com/angular/angular
    2. https://github.com/facebook/react
