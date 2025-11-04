@@ -48,6 +48,8 @@ The idea is to show that even a *single‑sentence* context can yield useful sug
    ```
 
    > Replace the arguments above to fit your project. See the full CLI options table above.
+   
+   **Or you can skip this step and use default pre-trained model.**
 
 3. **Build and Install the extension**
 

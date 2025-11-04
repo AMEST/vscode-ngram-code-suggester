@@ -30,17 +30,14 @@ The idea is to show that even a *single‑sentence* context can yield useful sug
    # Install VSIX in VS Code
    code --install-extension vscode-ngram-suggester-1.1.0.vsix
    ```
-
-2. **Download a pre-trained model**  
-   You can download pre-trained models from the [GitHub repository](https://github.com/amest/vscode-ngram-code-suggester).
-3. **Configure full path to downloaded model**.    
+2. **Configure full path to downloaded model**.    
    If extension builded without model, you need configure full path to model in extensions settings.   
-   Else if extension builded with model (*downloaded and saved to `extension/models` path*), check relative path in extension configuration and skip this step.
-4. **Enjoy autocompletion**   
+   Else if extension builded with model (*in repository, default model saved in `extension/models` path*), check relative path in extension configuration and skip this step.
+3. **Enjoy autocompletion**   
    Open a supported file, type a few tokens (words), and wait for auto‑suggestions.
 
 > **⚠️  Important about configuration**   
-> If you use a large model (more than 2 million patterns), you may need to disable "Fuzzy search" and "Use Smoothing" for better performance. If suggestions are still slow, enable "Use Trigger Characters" option.   
+> If you use a large model (more than 2 million patterns), you may need to disable "Fuzzy search" and "Use Smoothing" for better performance. If suggestions are still slow, enable "Use Trigger Characters" option. **Pre-trained model is so large.**     
 > For smaller models, keep these settings enabled for better suggestion quality.
 
 ## Extension Settings
