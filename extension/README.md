@@ -13,32 +13,17 @@
 
 The idea is to show that even a *single‑sentence* context can yield useful suggestions, without the heavy machinery of large neural models.
 
+#### Current functional
+
+* Autocompletion generation based on a pre-trained model
+* Project context awareness (open documents are indexed and included in autocompletion generation)
+* Support for model training and autocompletion generation for: C#, JavaScript, TypeScript, Python
+
 ---
 
-## Quick Start
-
-> ⚠️ The following steps assume you have Python 3.9+ installed and a recent VS Code release.
-
-1. **Build and Install the extension**
-
-   ```bash
-   # Build VSIX package
-   cd extension
-   npm install
-   vsce package
-
-   # Install VSIX in VS Code
-   code --install-extension vscode-ngram-suggester-1.1.0.vsix
-   ```
-2. **Configure full path to downloaded model**.    
-   If extension builded without model, you need configure full path to model in extensions settings.   
-   Else if extension builded with model (*in repository, default model saved in `extension/models` path*), check relative path in extension configuration and skip this step.
-3. **Enjoy autocompletion**   
-   Open a supported file, type a few tokens (words), and wait for auto‑suggestions.
-
 > **⚠️  Important about configuration**   
-> If you use a large model (more than 2 million patterns), you may need to disable "Fuzzy search" and "Use Smoothing" for better performance. If suggestions are still slow, enable "Use Trigger Characters" option. **Pre-trained model is so large.**     
-> For smaller models, keep these settings enabled for better suggestion quality.
+> If you use a large model (more than 2 million patterns), you may need to disable "Fuzzy search" and "Use Smoothing" for better performance. If suggestions are still slow, enable "Use Trigger Characters" option. **Pre-trained model in builded extension is so large.**     
+> For own smaller models, keep these settings enabled for better suggestion quality.
 
 ## Extension Settings
 
@@ -61,6 +46,10 @@ Add any of these to your *workspace* or *user* `settings.json` to tweak the beha
 ## Model Training
 
 For information on training your own models, please refer to the [full documentation on GitHub](https://github.com/amest/vscode-ngram-code-suggester).
+
+## Build Extension from sources
+
+For information how to build extension from sources, please refer to the [full documentation on GitHub](https://github.com/amest/vscode-ngram-code-suggester#quick-start).
 
 ---
 

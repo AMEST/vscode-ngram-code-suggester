@@ -6,6 +6,7 @@
 
 - [VSCode N-Gram Code Suggester](#vscode-n-gram-code-suggester)
   - [Overview](#overview)
+      - [Current functional](#current-functional)
   - [Quick Start](#quick-start)
   - [Extension Settings](#extension-settings)
   - [How to Train model](#how-to-train-model)
@@ -25,6 +26,12 @@
 | **Model file**              | A lightweight model that stores trigram/tag frequencies.                                                                   |
 
 The idea is to show that even a *single‑sentence* context can yield useful suggestions, without the heavy machinery of large neural models.
+
+#### Current functional
+
+* Autocompletion generation based on a pre-trained model
+* Project context awareness (open documents are indexed and included in autocompletion generation)
+* Support for model training and autocompletion generation for: C#, JavaScript, TypeScript, Python
 
 ---
 
