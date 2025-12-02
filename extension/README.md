@@ -37,11 +37,11 @@ Add any of these to your *workspace* or *user* `settings.json` to tweak the beha
 | **codeSuggester.maxFuzzyChecks**       | number  | `2000`                   | `≥ 1000`    | Maximum number of fuzzy‑search checks performed. Higher values give better matches but can be slow on large models.                                            |
 | **codeSuggester.minConfidence**        | number  | `0.2`                    | `0.0 – 1.0` | Minimum confidence threshold for a suggestion to be shown.                                                                                                     |
 | **codeSuggester.enableFuzzyMatching**  | boolean | `false`                  | –           | Turns on fuzzy matching for similar code patterns. ⚠️Use only on small models⚠️                                                                                  |
-| **codeSuggester.useSmoothing**         | boolean | `false`                  | –           | Enables smoothing algorithms to better handle rare n‑grams. ⚠️Use only on small models⚠️                                                  |
+| **codeSuggester.useSmoothing**         | boolean | `false`                  | –           | Enables smoothing algorithms to better handle rare n‑grams. ⚠️Use only on small models⚠️                                                                         |
 | **codeSuggester.useTriggerCharacters** | boolean | `false`                  | –           | When enabled, suggestions are only triggered when the cursor is placed on a trigger character (`. , ( ) [ { : ; =`). Useful if auto‑suggestions feel sluggish. |
 | **codeSuggester.useProjectContext**    | boolean | `true`                   | -           | Use project context from open files for suggestions                                                                                                            |
 | **codeSuggester.updateOnFileChange**   | boolean | `false`                  | -           | Update project model when files are modified (may impact performance)                                                                                          |
----
+
 
 ## Model Training
 

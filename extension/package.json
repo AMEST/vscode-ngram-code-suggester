@@ -2,7 +2,7 @@
     "name": "vscode-ngram-suggester",
     "displayName": "Code Suggester",
     "description": "N-gram based code suggestions with language-specific training",
-    "version": "1.1.1",
+    "version": "1.1.2",
     "publisher": "nb47",
     "author": "Klabukov Erik",
     "engines": {
