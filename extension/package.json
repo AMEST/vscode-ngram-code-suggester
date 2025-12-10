@@ -5,6 +5,7 @@
     "version": "1.1.2",
     "publisher": "nb47",
     "author": "Klabukov Erik",
+    "icon": "assets/icon.png",
     "engines": {
         "vscode": "^1.60.0"
     },
